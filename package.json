@@ -13,11 +13,14 @@
     "db:reset": "prisma migrate reset"
   },
   "dependencies": {
+    "@hono/zod-openapi": "^1.6.3",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "7.10.0",
+    "@scalar/hono-api-reference": "^0.12.1",
     "dotenv": "^17.4.2",
     "hono": "^4.13.7",
-    "pg": "^8.23.0"
+    "pg": "^8.23.0",
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@types/bun": "latest",
