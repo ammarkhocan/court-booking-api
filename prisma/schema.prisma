@@ -15,7 +15,8 @@ datasource db {
 model Court {
   id String @id @default(ulid())
 
-  name         String
+  name         String @unique
+  slug         String @unique
   description  String @db.Text
   sportType    String
   location     String
@@ -23,5 +24,5 @@ model Court {
   imageUrl     String
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 }
