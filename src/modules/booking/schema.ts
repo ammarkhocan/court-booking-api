@@ -21,3 +21,5 @@ export const BookingSchema = z.object({
 export const ErrorSchema = z.object({
   message: z.string(),
 });
+
+export const BookingsSchema = z.array(BookingSchema);

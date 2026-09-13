@@ -2,7 +2,12 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { db } from "../../lib/db";
 import { checkAuthorized } from "../auth/middleware";
 import type { AuthEnv } from "../auth/middleware";
-import { BookingSchema, CreateBookingSchema, ErrorSchema } from "./schema";
+import {
+  BookingSchema,
+  BookingsSchema,
+  CreateBookingSchema,
+  ErrorSchema,
+} from "./schema";
 
 export const bookingsRoute = new OpenAPIHono<AuthEnv>();
 
@@ -53,6 +58,46 @@ const createBookingRoute = createRoute({
       },
     },
   },
+});
+
+const getBookingsRoute = createRoute({
+  method: "get",
+  path: "/",
+  middleware: [checkAuthorized] as const,
+  responses: {
+    200: {
+      description: "Get current user booking history",
+      content: {
+        "application/json": {
+          schema: BookingsSchema,
+        },
+      },
+    },
+  },
+});
+
+bookingsRoute.openapi(getBookingsRoute, async (c) => {
+  const user = c.get("user");
+
+  const bookings = await db.booking.findMany({
+    where: {
+      userId: user.id,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return c.json(
+    bookings.map((booking) => ({
+      ...booking,
+      startTime: booking.startTime.toISOString(),
+      endTime: booking.endTime.toISOString(),
+      createdAt: booking.createdAt.toISOString(),
+      updatedAt: booking.updatedAt.toISOString(),
+    })),
+    200,
+  );
 });
 
 bookingsRoute.openapi(createBookingRoute, async (c) => {
