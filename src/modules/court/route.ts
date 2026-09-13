@@ -1,51 +1,160 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { db } from "../../lib/db";
-import { CourtSchema, CourtSlugParamSchema, CourtsSchema } from "./schema";
+import {
+  CourtIdParamSchema,
+  CourtSchema,
+  CourtSlugParamSchema,
+  CourtsSchema,
+  ErrorSchema,
+} from "./schema";
 
 export const courtsRoute = new OpenAPIHono();
 
 courtsRoute.openapi(
   createRoute({
     method: "get",
-    path: "/courts",
+    path: "/",
+    tags: ["Courts"],
+    summary: "Get all courts",
     responses: {
       200: {
-        description: "Get all courts",
-        content: { "application/json": { schema: CourtsSchema } },
+        description: "List of courts",
+        content: {
+          "application/json": {
+            schema: CourtsSchema,
+          },
+        },
       },
     },
   }),
   async (c) => {
-    const courts = await db.court.findMany();
+    const courts = await db.court.findMany({
+      orderBy: {
+        name: "asc",
+      },
+    });
 
-    return c.json(courts);
+    return c.json(
+      courts.map((court) => ({
+        ...court,
+        createdAt: court.createdAt.toISOString(),
+        updatedAt: court.updatedAt.toISOString(),
+      })),
+      200,
+    );
   },
 );
 
 courtsRoute.openapi(
   createRoute({
     method: "get",
-    path: "/courts/{slug}",
-    request: { params: CourtSlugParamSchema },
+    path: "/{id}",
+    tags: ["Courts"],
+    summary: "Get court by ID",
+    request: {
+      params: CourtIdParamSchema,
+    },
     responses: {
       200: {
-        description: "Get one court by slug",
-        content: { "application/json": { schema: CourtSchema } },
+        description: "Court detail",
+        content: {
+          "application/json": {
+            schema: CourtSchema,
+          },
+        },
       },
       404: {
-        description: "Court by slug not found",
+        description: "Court not found",
+        content: {
+          "application/json": {
+            schema: ErrorSchema,
+          },
+        },
+      },
+    },
+  }),
+  async (c) => {
+    const { id } = c.req.valid("param");
+
+    const court = await db.court.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!court) {
+      return c.json(
+        {
+          message: "Court not found",
+        },
+        404,
+      );
+    }
+
+    return c.json(
+      {
+        ...court,
+        createdAt: court.createdAt.toISOString(),
+        updatedAt: court.updatedAt.toISOString(),
+      },
+      200,
+    );
+  },
+);
+
+courtsRoute.openapi(
+  createRoute({
+    method: "get",
+    path: "slug/{slug}",
+    tags: ["Courts"],
+    summary: "Get court by slug",
+    request: {
+      params: CourtSlugParamSchema,
+    },
+    responses: {
+      200: {
+        description: "Court detail",
+        content: {
+          "application/json": {
+            schema: CourtSchema,
+          },
+        },
+      },
+      404: {
+        description: "Court not found",
+        content: {
+          "application/json": {
+            schema: ErrorSchema,
+          },
+        },
       },
     },
   }),
   async (c) => {
     const { slug } = c.req.valid("param");
 
-    const court = await db.court.findUnique({ where: { slug } });
+    const court = await db.court.findUnique({
+      where: {
+        slug,
+      },
+    });
 
     if (!court) {
-      return c.notFound();
+      return c.json(
+        {
+          message: "Court not found",
+        },
+        404,
+      );
     }
 
-    return c.json(court);
+    return c.json(
+      {
+        ...court,
+        createdAt: court.createdAt.toISOString(),
+        updatedAt: court.updatedAt.toISOString(),
+      },
+      200,
+    );
   },
 );
