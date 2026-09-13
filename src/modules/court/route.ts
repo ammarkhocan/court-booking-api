@@ -164,6 +164,8 @@ courtsRoute.openapi(
 const getCourtAvailabilityRoute = createRoute({
   method: "get",
   path: "/{id}/availability",
+  summary: "Get court availability",
+  tags: ["Courts"],
   request: {
     params: CourtIdParamSchema,
     query: AvailabilityQuerySchema,
