@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { password } from "bun";
 
 export const UserSchema = z.object({
   id: z.string(),
@@ -12,6 +13,7 @@ export const RegisterUserScema = z.object({
   username: z.string(),
   email: z.string(),
   fullName: z.string(),
+  password: z.string(),
 });
 
 export const UsersSchema = z.array(UserSchema);

@@ -25,14 +25,23 @@ authRoute.openapi(
   async (c) => {
     const body = c.req.valid("json");
 
-    const user = await db.user.create({
-      data: {
-        username: body.username,
-        email: body.email,
-        fullName: body.fullName,
-      },
-    });
+    try {
+      const hash = await Bun.password.hash(body.password);
 
-    return c.json(user);
+      const user = await db.user.create({
+        data: {
+          username: body.username,
+          email: body.email,
+          fullName: body.fullName,
+          password: {
+            create: { hash },
+          },
+        },
+      });
+
+      return c.json(user, 201);
+    } catch (error) {
+      return c.json({ message: "User or email already exist" }, 400);
+    }
   },
 );
