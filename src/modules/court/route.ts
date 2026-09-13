@@ -1,6 +1,8 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { db } from "../../lib/db";
 import {
+  AvailabilityQuerySchema,
+  CourtAvailabilitySchema,
   CourtIdParamSchema,
   CourtSchema,
   CourtSlugParamSchema,
@@ -158,3 +160,83 @@ courtsRoute.openapi(
     );
   },
 );
+
+const getCourtAvailabilityRoute = createRoute({
+  method: "get",
+  path: "/{id}/availability",
+  request: {
+    params: CourtIdParamSchema,
+    query: AvailabilityQuerySchema,
+  },
+  responses: {
+    200: {
+      description: "Get court availability",
+      content: {
+        "application/json": {
+          schema: CourtAvailabilitySchema,
+        },
+      },
+    },
+    404: {
+      description: "Court not found",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+  },
+});
+
+courtsRoute.openapi(getCourtAvailabilityRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const { date } = c.req.valid("query");
+
+  const court = await db.court.findUnique({
+    where: {
+      id,
+    },
+  });
+
+  if (!court) {
+    return c.json(
+      {
+        message: "Court not found",
+      },
+      404,
+    );
+  }
+
+  const startOfDay = new Date(`${date}T00:00:00.000Z`);
+  const endOfDay = new Date(`${date}T23:59:59.999Z`);
+
+  const bookings = await db.booking.findMany({
+    where: {
+      courtId: id,
+      status: "CONFIRMED",
+      startTime: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+    },
+    select: {
+      startTime: true,
+      endTime: true,
+    },
+    orderBy: {
+      startTime: "asc",
+    },
+  });
+
+  return c.json(
+    {
+      courtId: id,
+      date,
+      bookedSlots: bookings.map((booking) => ({
+        startTime: booking.startTime.toISOString(),
+        endTime: booking.endTime.toISOString(),
+      })),
+    },
+    200,
+  );
+});

@@ -62,3 +62,18 @@ export const CourtIdParamSchema = z.object({
 export const ErrorSchema = z.object({
   message: z.string(),
 });
+
+export const AvailabilityQuerySchema = z.object({
+  date: z.string(),
+});
+
+export const AvailabilityBookingSchema = z.object({
+  startTime: z.string().datetime(),
+  endTime: z.string().datetime(),
+});
+
+export const CourtAvailabilitySchema = z.object({
+  courtId: z.string(),
+  date: z.string(),
+  bookedSlots: z.array(AvailabilityBookingSchema),
+});
