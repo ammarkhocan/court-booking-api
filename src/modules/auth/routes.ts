@@ -1,12 +1,9 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { db } from "../../lib/db";
-
-import {
-  LoginUserScema,
-  RegisterUserScema,
-  TokenSchema,
-  UserSchema,
-} from "../user/schema";
+import { sign, verify } from "hono/jwt";
+import { UserSchema, PrivateUserSchema } from "../user/schema";
+import { checkAuthorized } from "./middleware";
+import { LoginUserScema, RegisterUserScema, TokenSchema } from "./schema";
 
 export const authRoute = new OpenAPIHono();
 
@@ -103,7 +100,14 @@ authRoute.openapi(
         });
       }
 
-      const token = await signToken(user.id);
+      const payload = {
+        sub: user.id,
+        exp: Math.floor(Date.now() / 1000) + 60 * 15,
+      };
+
+      const tokenSecretKey = process.env.TOKEN_SECRET_KEY || "default_secret";
+
+      const token = await sign(payload, tokenSecretKey);
 
       return c.text(token);
     } catch (error) {
@@ -114,5 +118,27 @@ authRoute.openapi(
         400,
       );
     }
+  },
+);
+
+authRoute.openapi(
+  createRoute({
+    method: "get",
+    path: "/me",
+    middleware: checkAuthorized,
+    responses: {
+      200: {
+        description: "Get authenticated user",
+        content: { "application/json": { schema: PrivateUserSchema } },
+      },
+      404: {
+        description: "User by id not found",
+      },
+    },
+  }),
+  async (c) => {
+    const user = c.get("user");
+
+    return c.json(user);
   },
 );

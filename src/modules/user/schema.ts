@@ -1,5 +1,4 @@
 import { z } from "@hono/zod-openapi";
-import { password } from "bun";
 
 export const UserSchema = z.object({
   id: z.string(),
@@ -9,22 +8,16 @@ export const UserSchema = z.object({
   updatedAt: z.date(),
 });
 
-export const RegisterUserScema = z.object({
-  username: z.string(),
+export const PrivateUserSchema = UserSchema.extend({
   email: z.string(),
-  fullName: z.string(),
-  password: z.string(),
 });
 
-export const LoginUserScema = z.object({
-  email: z.string(),
-  password: z.string(),
-});
+export type User = z.infer<typeof UserSchema>;
+
+export type PrivateUser = z.infer<typeof PrivateUserSchema>;
 
 export const UsersSchema = z.array(UserSchema);
 
 export const UserIdParamSchem = z.object({
   id: z.string(),
 });
-
-export const TokenSchema = z.string();
