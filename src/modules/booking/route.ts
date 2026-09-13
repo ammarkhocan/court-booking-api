@@ -6,6 +6,7 @@ import {
   BookingSchema,
   BookingsSchema,
   CreateBookingSchema,
+  BookingIdParamSchema,
   ErrorSchema,
 } from "./schema";
 
@@ -74,6 +75,65 @@ const getBookingsRoute = createRoute({
       },
     },
   },
+});
+
+const getBookingByIdRoute = createRoute({
+  method: "get",
+  path: "/{id}",
+  middleware: [checkAuthorized] as const,
+  request: {
+    params: BookingIdParamSchema,
+  },
+  responses: {
+    200: {
+      description: "Get booking by id",
+      content: {
+        "application/json": {
+          schema: BookingSchema,
+        },
+      },
+    },
+    404: {
+      description: "Booking not found",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+  },
+});
+
+bookingsRoute.openapi(getBookingByIdRoute, async (c) => {
+  const user = c.get("user");
+  const { id } = c.req.valid("param");
+
+  const booking = await db.booking.findFirst({
+    where: {
+      id,
+      userId: user.id,
+    },
+  });
+
+  if (!booking) {
+    return c.json(
+      {
+        message: "Booking not found",
+      },
+      404,
+    );
+  }
+
+  return c.json(
+    {
+      ...booking,
+      startTime: booking.startTime.toISOString(),
+      endTime: booking.endTime.toISOString(),
+      createdAt: booking.createdAt.toISOString(),
+      updatedAt: booking.updatedAt.toISOString(),
+    },
+    200,
+  );
 });
 
 bookingsRoute.openapi(getBookingsRoute, async (c) => {

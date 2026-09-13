@@ -23,3 +23,7 @@ export const ErrorSchema = z.object({
 });
 
 export const BookingsSchema = z.array(BookingSchema);
+
+export const BookingIdParamSchema = z.object({
+  id: z.string(),
+});
