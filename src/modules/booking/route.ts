@@ -15,6 +15,8 @@ export const bookingsRoute = new OpenAPIHono<AuthEnv>();
 const createBookingRoute = createRoute({
   method: "post",
   path: "/",
+  summary: "Create a booking",
+  tags: ["Booking"],
   middleware: [checkAuthorized] as const,
   request: {
     body: {
@@ -64,6 +66,8 @@ const createBookingRoute = createRoute({
 const getBookingsRoute = createRoute({
   method: "get",
   path: "/",
+  summary: "Get user bookings",
+  tags: ["Booking"],
   middleware: [checkAuthorized] as const,
   responses: {
     200: {
@@ -80,6 +84,8 @@ const getBookingsRoute = createRoute({
 const getBookingByIdRoute = createRoute({
   method: "get",
   path: "/{id}",
+  summary: "Get booking by ID",
+  tags: ["Booking"],
   middleware: [checkAuthorized] as const,
   request: {
     params: BookingIdParamSchema,
@@ -107,6 +113,8 @@ const getBookingByIdRoute = createRoute({
 const cancelBookingRoute = createRoute({
   method: "patch",
   path: "/{id}/cancel",
+  summary: "Cancel booking by ID",
+  tags: ["Booking"],
   middleware: [checkAuthorized] as const,
   request: {
     params: BookingIdParamSchema,
