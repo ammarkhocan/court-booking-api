@@ -1,9 +1,14 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { db } from "../../lib/db";
-import { sign, verify } from "hono/jwt";
-import { UserSchema, PrivateUserSchema } from "../user/schema";
+import { signToken } from "../../lib/token";
+
 import { checkAuthorized } from "./middleware";
-import { LoginUserScema, RegisterUserScema, TokenSchema } from "./schema";
+import {
+  LoginResponseSchema,
+  LoginUserScema,
+  RegisterUserScema,
+} from "./schema";
+import { PrivateUserSchema } from "../user/schema";
 
 export const authRoute = new OpenAPIHono();
 
@@ -11,13 +16,25 @@ authRoute.openapi(
   createRoute({
     method: "post",
     path: "/register",
+    tags: ["Auth"],
+    summary: "Register user",
     request: {
-      body: { content: { "application/json": { schema: RegisterUserScema } } },
+      body: {
+        content: {
+          "application/json": {
+            schema: RegisterUserScema,
+          },
+        },
+      },
     },
     responses: {
       201: {
-        description: "Register new users",
-        content: { "application/json": { schema: UserSchema } },
+        description: "Register new user",
+        content: {
+          "application/json": {
+            schema: PrivateUserSchema,
+          },
+        },
       },
       400: {
         description: "Failed to register new user",
@@ -36,14 +53,21 @@ authRoute.openapi(
           email: body.email,
           fullName: body.fullName,
           password: {
-            create: { hash },
+            create: {
+              hash,
+            },
           },
         },
       });
 
       return c.json(user, 201);
-    } catch (error) {
-      return c.json({ message: "User or email already exist" }, 400);
+    } catch {
+      return c.json(
+        {
+          message: "Username or email already exists",
+        },
+        400,
+      );
     }
   },
 );
@@ -52,19 +76,27 @@ authRoute.openapi(
   createRoute({
     method: "post",
     path: "/login",
+    tags: ["Auth"],
+    summary: "Login user",
     request: {
-      body: { content: { "application/json": { schema: LoginUserScema } } },
+      body: {
+        content: {
+          "application/json": {
+            schema: LoginUserScema,
+          },
+        },
+      },
     },
     responses: {
       200: {
         description: "Logged in user",
-        content: { "text/plain": { schema: TokenSchema } },
+        content: { "text/plain": { schema: LoginResponseSchema } },
       },
       400: {
         description: "Failed to login user",
       },
-      404: {
-        description: "User not found",
+      401: {
+        description: "Invalid email or password",
       },
     },
   }),
@@ -73,47 +105,44 @@ authRoute.openapi(
 
     try {
       const user = await db.user.findUnique({
-        where: { email: body.email },
+        where: {
+          email: body.email,
+        },
         include: {
           password: true,
         },
       });
 
-      if (!user) {
-        return c.notFound();
-      }
-
-      if (!user.password?.hash) {
-        return c.json({
-          message: "User has no password",
-        });
+      if (!user || !user.password?.hash) {
+        return c.json(
+          {
+            message: "Invalid email or password",
+          },
+          401,
+        );
       }
 
       const isMatch = await Bun.password.verify(
         body.password,
-        user.password?.hash,
+        user.password.hash,
       );
 
       if (!isMatch) {
-        return c.json({
-          message: "Password incorect",
-        });
+        return c.json(
+          {
+            message: "Invalid email or password",
+          },
+          401,
+        );
       }
 
-      const payload = {
-        sub: user.id,
-        exp: Math.floor(Date.now() / 1000) + 60 * 15,
-      };
-
-      const tokenSecretKey = process.env.TOKEN_SECRET_KEY || "default_secret";
-
-      const token = await sign(payload, tokenSecretKey);
+      const token = await signToken(user.id);
 
       return c.text(token);
-    } catch (error) {
+    } catch {
       return c.json(
         {
-          message: "Email or password in correct",
+          message: "Failed to login user",
         },
         400,
       );
@@ -125,20 +154,26 @@ authRoute.openapi(
   createRoute({
     method: "get",
     path: "/me",
+    tags: ["Auth"],
+    summary: "Get authenticated user",
     middleware: checkAuthorized,
     responses: {
       200: {
         description: "Get authenticated user",
-        content: { "application/json": { schema: PrivateUserSchema } },
+        content: {
+          "application/json": {
+            schema: PrivateUserSchema,
+          },
+        },
       },
-      404: {
-        description: "User by id not found",
+      401: {
+        description: "Unauthorized",
       },
     },
   }),
   async (c) => {
     const user = c.get("user");
 
-    return c.json(user);
+    return c.json(user, 200);
   },
 );

@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { PrivateUserSchema } from "../user/schema";
 
 export const RegisterUserScema = z.object({
   username: z.string(),
@@ -12,4 +13,9 @@ export const LoginUserScema = z.object({
   password: z.string(),
 });
 
-export const TokenSchema = z.string();
+export const LoginResponseSchema = z.object({
+  token: z.string(),
+  user: PrivateUserSchema,
+});
+
+// export const TokenSchema = z.string();

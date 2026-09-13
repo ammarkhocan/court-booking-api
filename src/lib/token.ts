@@ -1,6 +1,16 @@
 import { sign, verify } from "hono/jwt";
 
-const tokenSecretKey = String(process.env.TOKEN_SECRET_KEY);
+function getTokenSecretKey(): string {
+  const secret = process.env.TOKEN_SECRET_KEY;
+
+  if (!secret) {
+    throw new Error("TOKEN_SECRET_KEY is not defined");
+  }
+
+  return secret;
+}
+
+const tokenSecretKey = getTokenSecretKey();
 
 interface JWTPayload {
   sub?: string;
@@ -9,12 +19,10 @@ interface JWTPayload {
 export async function signToken(userId: string) {
   const payload = {
     sub: userId,
-    exp: Math.floor(Date.now() / 1000) + 60 * 15,
+    exp: Math.floor(Date.now() / 1000) + 60 * 60,
   };
 
-  const token = await sign(payload, tokenSecretKey, "HS256");
-
-  return token;
+  return await sign(payload, tokenSecretKey, "HS256");
 }
 
 export async function verifyToken(token: string): Promise<JWTPayload> {
