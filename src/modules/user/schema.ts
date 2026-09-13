@@ -16,8 +16,15 @@ export const RegisterUserScema = z.object({
   password: z.string(),
 });
 
+export const LoginUserScema = z.object({
+  email: z.string(),
+  password: z.string(),
+});
+
 export const UsersSchema = z.array(UserSchema);
 
 export const UserIdParamSchem = z.object({
   id: z.string(),
 });
+
+export const TokenSchema = z.string();
