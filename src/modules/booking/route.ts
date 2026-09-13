@@ -104,6 +104,91 @@ const getBookingByIdRoute = createRoute({
   },
 });
 
+const cancelBookingRoute = createRoute({
+  method: "patch",
+  path: "/{id}/cancel",
+  middleware: [checkAuthorized] as const,
+  request: {
+    params: BookingIdParamSchema,
+  },
+  responses: {
+    200: {
+      description: "Booking cancelled successfully",
+      content: {
+        "application/json": {
+          schema: BookingSchema,
+        },
+      },
+    },
+    400: {
+      description: "Booking already cancelled",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+    404: {
+      description: "Booking not found",
+      content: {
+        "application/json": {
+          schema: ErrorSchema,
+        },
+      },
+    },
+  },
+});
+
+bookingsRoute.openapi(cancelBookingRoute, async (c) => {
+  const user = c.get("user");
+  const { id } = c.req.valid("param");
+
+  const booking = await db.booking.findFirst({
+    where: {
+      id,
+      userId: user.id,
+    },
+  });
+
+  if (!booking) {
+    return c.json(
+      {
+        message: "Booking not found",
+      },
+      404,
+    );
+  }
+
+  if (booking.status === "CANCELLED") {
+    return c.json(
+      {
+        message: "Booking is already cancelled",
+      },
+      400,
+    );
+  }
+
+  const cancelledBooking = await db.booking.update({
+    where: {
+      id: booking.id,
+    },
+    data: {
+      status: "CANCELLED",
+    },
+  });
+
+  return c.json(
+    {
+      ...cancelledBooking,
+      startTime: cancelledBooking.startTime.toISOString(),
+      endTime: cancelledBooking.endTime.toISOString(),
+      createdAt: cancelledBooking.createdAt.toISOString(),
+      updatedAt: cancelledBooking.updatedAt.toISOString(),
+    },
+    200,
+  );
+});
+
 bookingsRoute.openapi(getBookingByIdRoute, async (c) => {
   const user = c.get("user");
   const { id } = c.req.valid("param");
