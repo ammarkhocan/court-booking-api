@@ -8,6 +8,12 @@ export const UserSchema = z.object({
   updatedAt: z.date(),
 });
 
+export const RegisterUserScema = z.object({
+  username: z.string(),
+  email: z.string(),
+  fullName: z.string(),
+});
+
 export const UsersSchema = z.array(UserSchema);
 
 export const UserIdParamSchem = z.object({
