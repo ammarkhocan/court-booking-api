@@ -3,13 +3,13 @@ import { db } from "../../lib/db";
 import { verifyToken } from "../../lib/token";
 import type { PrivateUser } from "../user/schema";
 
-type Env = {
+export type AuthEnv = {
   Variables: {
     user: PrivateUser;
   };
 };
 
-export const checkAuthorized = createMiddleware<Env>(async (c, next) => {
+export const checkAuthorized = createMiddleware<AuthEnv>(async (c, next) => {
   try {
     const authHeader = c.req.header("Authorization");
 
